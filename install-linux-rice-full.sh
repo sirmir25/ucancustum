@@ -479,404 +479,1419 @@ DWMEOF
   cd - >/dev/null
 }
 
-# ===== I3 =====
-install_i3() {
-  info "Installing i3 + polybar…"
+# ── Shared: Catppuccin Mocha palette ─────────────────────────────────────────
+# Used by i3, bspwm, hyprland, kde
+CAT_BASE="#1e1e2e";  CAT_MANTLE="#181825"; CAT_CRUST="#11111b"
+CAT_SURF0="#313244"; CAT_SURF1="#45475a";  CAT_SURF2="#585b70"
+CAT_OVR0="#6c7086";  CAT_OVR1="#7f849c";  CAT_OVR2="#9399b2"
+CAT_TEXT="#cdd6f4";  CAT_SUB1="#bac2de";  CAT_SUB0="#a6adc8"
+CAT_LAVEN="#b4befe"; CAT_BLUE="#89b4fa";  CAT_SAPH="#74c7ec"
+CAT_SKY="#89dceb";   CAT_TEAL="#94e2d5";  CAT_GREEN="#a6e3a1"
+CAT_YELL="#f9e2af";  CAT_PEACH="#fab387"; CAT_MAUVE="#cba6f7"
+CAT_PINK="#f5c2e7";  CAT_RED="#f38ba8";   CAT_MARO="#eba0ac"
+CAT_FLAM="#f2cdcd";  CAT_ROSE="#f5e0dc"
 
-  for pkg in i3 i3status dmenu polybar picom; do
+# ── Shared: Catppuccin rofi theme ─────────────────────────────────────────────
+write_rofi_catppuccin() {
+  mkdir -p "$HOME/.config/rofi"
+  cat > "$HOME/.config/rofi/catppuccin.rasi" <<'ROFIEOF'
+* {
+    bg0:  #1e1e2eff;
+    bg1:  #313244ff;
+    bg2:  #45475aff;
+    fg0:  #cdd6f4ff;
+    fg1:  #bac2deff;
+    ac0:  #89b4faff;
+    ac1:  #cba6f7ff;
+    rd:   #f38ba8ff;
+    gr:   #a6e3a1ff;
+}
+configuration {
+    modi:            "drun,run,window";
+    show-icons:      true;
+    icon-theme:      "Papirus-Dark";
+    display-drun:    "  Apps";
+    display-run:     "  Run";
+    display-window:  "  Windows";
+    drun-display-format: "{name}";
+    font: "JetBrainsMono Nerd Font 11";
+}
+window {
+    transparency:         "real";
+    location:             center;
+    anchor:               center;
+    fullscreen:           false;
+    width:                600px;
+    border-radius:        12px;
+    border:               2px solid;
+    border-color:         @ac0;
+    background-color:     @bg0;
+}
+mainbox {
+    padding:          12px;
+    background-color: transparent;
+}
+inputbar {
+    children:         [ prompt, entry ];
+    background-color: @bg1;
+    border-radius:    8px;
+    padding:          8px 12px;
+    margin:           0 0 10px 0;
+}
+prompt {
+    background-color: transparent;
+    text-color:       @ac0;
+    padding:          0 8px 0 0;
+}
+entry {
+    background-color: transparent;
+    text-color:       @fg0;
+    placeholder:      "Search...";
+    placeholder-color: @fg1;
+}
+listview {
+    columns:          1;
+    lines:            8;
+    spacing:          4px;
+    background-color: transparent;
+    scrollbar:        false;
+}
+element {
+    padding:          8px 12px;
+    border-radius:    6px;
+    background-color: transparent;
+    text-color:       @fg1;
+    orientation:      horizontal;
+}
+element selected.normal {
+    background-color: @bg1;
+    text-color:       @fg0;
+    border-left:      3px solid @ac0;
+}
+element-icon {
+    size:             20px;
+    padding:          0 8px 0 0;
+    background-color: transparent;
+}
+element-text {
+    background-color: transparent;
+    text-color:       inherit;
+    vertical-align:   0.5;
+}
+ROFIEOF
+  ok "rofi Catppuccin theme written"
+}
+
+# ── Shared: Catppuccin dunst config ────────────────────────────────────────────
+write_dunst_catppuccin() {
+  mkdir -p "$HOME/.config/dunst"
+  cat > "$HOME/.config/dunst/dunstrc" <<'DUNSTEOF'
+[global]
+    monitor                = 0
+    follow                 = mouse
+    width                  = 340
+    height                 = 100
+    origin                 = top-right
+    offset                 = 12x12
+    scale                  = 0
+    notification_limit     = 5
+    progress_bar           = true
+    progress_bar_height    = 8
+    progress_bar_frame_width = 1
+    progress_bar_min_width = 150
+    progress_bar_max_width = 280
+    indicate_hidden        = yes
+    transparency           = 10
+    separator_height       = 1
+    padding                = 10
+    horizontal_padding     = 14
+    text_icon_padding      = 0
+    frame_width            = 2
+    frame_color            = "#89b4fa"
+    separator_color        = frame
+    sort                   = yes
+    idle_threshold         = 120
+    font                   = JetBrainsMono Nerd Font 10
+    line_height            = 0
+    markup                 = full
+    format                 = "<b>%s</b>\n%b"
+    alignment              = left
+    vertical_alignment     = center
+    show_age_threshold     = 60
+    ellipsize              = middle
+    ignore_newline         = no
+    stack_duplicates       = true
+    hide_duplicate_count   = false
+    show_indicators        = yes
+    enable_recursive_icon_lookup = true
+    icon_theme             = Papirus-Dark
+    icon_position          = left
+    min_icon_size          = 32
+    max_icon_size          = 64
+    sticky_history         = yes
+    history_length         = 20
+    browser                = /usr/bin/xdg-open
+    always_run_script      = true
+    title                  = Dunst
+    class                  = Dunst
+    corner_radius          = 10
+    ignore_dbusclose       = false
+    force_xwayland         = false
+    force_xinerama         = false
+    mouse_left_click       = close_current
+    mouse_middle_click     = do_action, close_current
+    mouse_right_click      = close_all
+
+[urgency_low]
+    background = "#1e1e2e"
+    foreground = "#cdd6f4"
+    frame_color = "#313244"
+    timeout    = 5
+
+[urgency_normal]
+    background = "#1e1e2e"
+    foreground = "#cdd6f4"
+    frame_color = "#89b4fa"
+    timeout    = 8
+
+[urgency_critical]
+    background = "#1e1e2e"
+    foreground = "#f38ba8"
+    frame_color = "#f38ba8"
+    timeout    = 0
+DUNSTEOF
+  ok "dunst Catppuccin config written"
+}
+
+# ── Shared: Catppuccin kitty terminal ──────────────────────────────────────────
+write_kitty_catppuccin() {
+  mkdir -p "$HOME/.config/kitty"
+  cat > "$HOME/.config/kitty/kitty.conf" <<'KITTYEOF'
+# Catppuccin Mocha for kitty
+font_family      JetBrainsMono Nerd Font
+bold_font        auto
+italic_font      auto
+bold_italic_font auto
+font_size        12.0
+
+background_opacity   0.92
+background_blur      24
+window_padding_width 12
+cursor_shape         block
+cursor_blink_interval 0.5
+enable_audio_bell    no
+scrollback_lines     5000
+
+# Catppuccin Mocha palette
+foreground              #cdd6f4
+background              #1e1e2e
+selection_foreground    #1e1e2e
+selection_background    #f5e0dc
+cursor                  #f5e0dc
+cursor_text_color       #1e1e2e
+url_color               #f5e0dc
+active_border_color     #b4befe
+inactive_border_color   #6c7086
+bell_border_color       #f9e2af
+active_tab_foreground   #11111b
+active_tab_background   #cba6f7
+inactive_tab_foreground #cdd6f4
+inactive_tab_background #181825
+tab_bar_background      #11111b
+mark1_foreground #1e1e2e
+mark1_background #b4befe
+mark2_foreground #1e1e2e
+mark2_background #cba6f7
+mark3_foreground #1e1e2e
+mark3_background #74c7ec
+
+# 16 terminal colors
+color0  #45475a
+color1  #f38ba8
+color2  #a6e3a1
+color3  #f9e2af
+color4  #89b4fa
+color5  #f5c2e7
+color6  #94e2d5
+color7  #bac2de
+color8  #585b70
+color9  #f38ba8
+color10 #a6e3a1
+color11 #f9e2af
+color12 #89b4fa
+color13 #f5c2e7
+color14 #94e2d5
+color15 #a6adc8
+KITTYEOF
+  ok "kitty Catppuccin config written"
+}
+
+# ── Shared: picom with rounded corners ─────────────────────────────────────────
+write_picom_catppuccin() {
+  mkdir -p "$HOME/.config/picom"
+  cat > "$HOME/.config/picom/picom.conf" <<'PICOMEOF'
+# picom — Catppuccin Mocha rice style
+backend              = "glx";
+vsync                = true;
+use-damage           = true;
+
+# Rounded corners
+corner-radius        = 10;
+rounded-corners-exclude = [
+    "window_type = 'dock'",
+    "window_type = 'desktop'"
+];
+
+# Shadows
+shadow               = true;
+shadow-radius        = 20;
+shadow-opacity       = 0.45;
+shadow-offset-x      = -10;
+shadow-offset-y      = -10;
+shadow-exclude       = [
+    "name = 'Notification'",
+    "class_g = 'Conky'",
+    "window_type = 'dock'"
+];
+
+# Fading
+fading               = true;
+fade-in-step         = 0.04;
+fade-out-step        = 0.04;
+fade-delta           = 4;
+
+# Opacity
+inactive-opacity     = 0.92;
+active-opacity       = 1.0;
+frame-opacity        = 1.0;
+inactive-opacity-override = false;
+focus-exclude        = [ "class_g = 'Cairo-clock'" ];
+
+# Blur (disabled by default — enable for frosted glass)
+# blur-method = "dual_kawase";
+# blur-strength = 6;
+# blur-background = true;
+PICOMEOF
+  ok "picom Catppuccin config written"
+}
+
+# ===== I3 — Catppuccin Mocha (most popular r/unixporn i3 style) ===============
+# Inspired by: top i3 rices on r/unixporn (catppuccin + polybar + rofi + picom)
+install_i3() {
+  info "Installing i3 + polybar + rofi + dunst [Catppuccin Mocha]…"
+
+  for pkg in i3 polybar picom rofi dunst; do
     ensure_pkg "$pkg"
   done
-  ok "i3 + polybar installed"
+  ok "i3 stack installed"
+
+  write_rofi_catppuccin
+  write_dunst_catppuccin
+  write_kitty_catppuccin
+  write_picom_catppuccin
 
   mkdir -p "$HOME/.config/i3"
   if [[ ! -f "$HOME/.config/i3/config" ]]; then
     cat > "$HOME/.config/i3/config" <<'I3EOF'
+# i3 — Catppuccin Mocha rice
+# Inspired by top r/unixporn i3 setups (2024-2025)
 set $mod Mod4
-font pango:JetBrainsMono Nerd Font 10
+font pango:JetBrainsMono Nerd Font 11
 
-set $bg     #1a1b26
-set $fg     #c0caf5
-set $blue   #7aa2f7
-set $green  #9ece6a
-set $red    #f7768e
+# Catppuccin Mocha
+set $base   #1e1e2e
+set $mantle #181825
+set $surf0  #313244
+set $surf1  #45475a
+set $text   #cdd6f4
+set $sub1   #bac2de
+set $blue   #89b4fa
+set $mauve  #cba6f7
+set $green  #a6e3a1
+set $red    #f38ba8
+set $peach  #fab387
+set $laven  #b4befe
 
-client.focused          $blue   $bg $fg $green
-client.unfocused        $bg     $bg $fg $bg
-client.focused_inactive $bg     $bg $fg $bg
-client.urgent           $red    $red $fg $red
-
-gaps inner 8
-gaps outer 4
-smart_gaps on
+# Window borders (accent left border, Catppuccin style)
 for_window [class="^.*"] border pixel 2
+smart_gaps on
+smart_borders on
+gaps inner 12
+gaps outer 6
 
-bindsym $mod+Return exec kitty
-bindsym $mod+d exec dmenu_run -nb "$bg" -nf "$fg" -sb "$blue"
-bindsym $mod+Shift+q kill
-bindsym $mod+Left focus left
-bindsym $mod+Down focus down
-bindsym $mod+Up focus up
+client.focused          $blue   $base   $text   $mauve  $blue
+client.focused_inactive $surf1  $base   $sub1   $surf0  $surf1
+client.unfocused        $surf0  $base   $sub1   $surf0  $surf0
+client.urgent           $red    $base   $red    $red    $red
+
+# Core bindings
+bindsym $mod+Return       exec kitty
+bindsym $mod+d            exec rofi -show drun -theme ~/.config/rofi/catppuccin.rasi
+bindsym $mod+Shift+d      exec rofi -show run  -theme ~/.config/rofi/catppuccin.rasi
+bindsym $mod+Tab          exec rofi -show window -theme ~/.config/rofi/catppuccin.rasi
+bindsym $mod+Shift+q      kill
+bindsym $mod+Shift+c      reload
+bindsym $mod+Shift+r      restart
+bindsym $mod+Shift+e      exec i3-nagbar -t warning -m 'Exit i3?' -B 'Yes' 'i3-msg exit'
+
+# Focus
+bindsym $mod+h  focus left
+bindsym $mod+j  focus down
+bindsym $mod+k  focus up
+bindsym $mod+l  focus right
+bindsym $mod+Left  focus left
+bindsym $mod+Down  focus down
+bindsym $mod+Up    focus up
 bindsym $mod+Right focus right
 
-set $ws1 "1"
-set $ws2 "2"
-set $ws3 "3"
-set $ws4 "4"
-set $ws5 "5"
+# Move
+bindsym $mod+Shift+h  move left
+bindsym $mod+Shift+j  move down
+bindsym $mod+Shift+k  move up
+bindsym $mod+Shift+l  move right
+bindsym $mod+Shift+Left  move left
+bindsym $mod+Shift+Down  move down
+bindsym $mod+Shift+Up    move up
+bindsym $mod+Shift+Right move right
+
+# Layout
+bindsym $mod+b  splith
+bindsym $mod+v  splitv
+bindsym $mod+s  layout stacking
+bindsym $mod+w  layout tabbed
+bindsym $mod+e  layout toggle split
+bindsym $mod+f  fullscreen toggle
+bindsym $mod+Shift+space floating toggle
+bindsym $mod+space       focus mode_toggle
+bindsym $mod+a           focus parent
+
+# Resize
+mode "resize" {
+    bindsym h resize shrink width  10px
+    bindsym j resize grow   height 10px
+    bindsym k resize shrink height 10px
+    bindsym l resize grow   width  10px
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+}
+bindsym $mod+r mode "resize"
+
+# Workspaces
+set $ws1 "1 "
+set $ws2 "2 "
+set $ws3 "3 󰨞"
+set $ws4 "4 󰊢"
+set $ws5 "5 󰭹"
+set $ws6 "6 "
+set $ws7 "7 "
+set $ws8 "8 "
+set $ws9 "9 "
 
 bindsym $mod+1 workspace $ws1
 bindsym $mod+2 workspace $ws2
 bindsym $mod+3 workspace $ws3
 bindsym $mod+4 workspace $ws4
 bindsym $mod+5 workspace $ws5
+bindsym $mod+6 workspace $ws6
+bindsym $mod+7 workspace $ws7
+bindsym $mod+8 workspace $ws8
+bindsym $mod+9 workspace $ws9
 
 bindsym $mod+Shift+1 move container to workspace $ws1
 bindsym $mod+Shift+2 move container to workspace $ws2
 bindsym $mod+Shift+3 move container to workspace $ws3
 bindsym $mod+Shift+4 move container to workspace $ws4
 bindsym $mod+Shift+5 move container to workspace $ws5
+bindsym $mod+Shift+6 move container to workspace $ws6
+bindsym $mod+Shift+7 move container to workspace $ws7
+bindsym $mod+Shift+8 move container to workspace $ws8
+bindsym $mod+Shift+9 move container to workspace $ws9
 
-bindsym $mod+Shift+c reload
-bindsym $mod+Shift+r restart
+# Floating rules
+for_window [window_role="pop-up"]         floating enable
+for_window [window_role="task_dialog"]    floating enable
+for_window [class="Pavucontrol"]          floating enable, resize set 680 480
+for_window [class="Nitrogen"]             floating enable
 
-exec_always --no-startup-id killall polybar; polybar main
-exec_always --no-startup-id picom -b
+# Autostart
+exec_always --no-startup-id killall dunst;  dunst &
+exec_always --no-startup-id killall polybar; sleep 0.5; polybar main &
+exec_always --no-startup-id picom --config ~/.config/picom/picom.conf -b
+exec        --no-startup-id xsetroot -solid "#1e1e2e"
 I3EOF
-    ok "i3 config created"
+    ok "i3 config created (Catppuccin Mocha)"
   fi
 
+  # Polybar — Catppuccin pill-style bar
   mkdir -p "$HOME/.config/polybar"
   if [[ ! -f "$HOME/.config/polybar/config.ini" ]]; then
     cat > "$HOME/.config/polybar/config.ini" <<'POLYEOF'
+; polybar — Catppuccin Mocha  (top r/unixporn i3 style)
+
+[colors]
+base   = #1e1e2e
+mantle = #181825
+crust  = #11111b
+surf0  = #313244
+surf1  = #45475a
+text   = #cdd6f4
+sub1   = #bac2de
+blue   = #89b4fa
+mauve  = #cba6f7
+green  = #a6e3a1
+red    = #f38ba8
+peach  = #fab387
+yellow = #f9e2af
+teal   = #94e2d5
+laven  = #b4befe
+
 [bar/main]
-width = 100%
-height = 28
-background = #1a1b26
-foreground = #c0caf5
-line-color = #7aa2f7
-font-0 = JetBrainsMono Nerd Font:pixelsize=10
-modules-left = i3
-modules-right = cpu memory date
-module-margin = 1
-padding = 1
+width            = 100%
+height           = 36
+radius           = 0
+fixed-center     = true
+background       = ${colors.base}
+foreground       = ${colors.text}
+line-size        = 3
+line-color       = ${colors.blue}
+border-size      = 0
+padding-left     = 1
+padding-right    = 1
+module-margin    = 1
+font-0           = JetBrainsMono Nerd Font:size=11:weight=bold;2
+font-1           = JetBrainsMono Nerd Font:size=16;4
+font-2           = JetBrainsMono Nerd Font:size=9;2
+separator        = |
+separator-foreground = ${colors.surf1}
+modules-left     = i3 title
+modules-center   = date
+modules-right    = cpu memory pulseaudio
+tray-position    = right
+tray-padding     = 6
+cursor-click     = pointer
+cursor-scroll    = ns-resize
 
 [module/i3]
-type = internal/i3
-format = <label-state>
-label-focused-background = #7aa2f7
-label-focused-foreground = #1a1b26
-label-focused-padding = 2
+type                        = internal/i3
+format                      = <label-state>
+index-sort                  = true
+wrapping-scroll             = false
+label-mode-padding          = 2
+label-mode-foreground       = ${colors.text}
+label-mode-background       = ${colors.peach}
+label-focused               = %name%
+label-focused-background    = ${colors.surf0}
+label-focused-foreground    = ${colors.blue}
+label-focused-underline     = ${colors.blue}
+label-focused-padding       = 3
+label-unfocused             = %name%
+label-unfocused-padding     = 3
+label-unfocused-foreground  = ${colors.sub1}
+label-visible               = %name%
+label-visible-padding       = 3
+label-urgent                = %name%
+label-urgent-background     = ${colors.red}
+label-urgent-padding        = 3
 
-[module/cpu]
-type = internal/cpu
-format = <label>
-label = 󰻠 %percentage%%
-label-foreground = #9ece6a
-
-[module/memory]
-type = internal/memory
-format = <label>
-label = 󰑭 %percentage%%
-label-foreground = #e0af68
+[module/title]
+type             = internal/xwindow
+format           = <label>
+label            = %title%
+label-maxlen     = 50
+label-foreground = ${colors.sub1}
+label-empty      = Desktop
+label-empty-foreground = ${colors.surf1}
 
 [module/date]
-type = internal/date
-format = <label>
-date = %H:%M:%S
-label = 󰃭 %date%
-label-foreground = #7aa2f7
-POLYEOF
-    ok "polybar config created"
-  fi
+type             = internal/date
+interval         = 1
+date             = %A, %d %B
+time             = %H:%M
+format           = <label>
+label            =  %date%    %time%
+label-foreground = ${colors.laven}
 
-  mkdir -p "$HOME/.config/picom"
-  if [[ ! -f "$HOME/.config/picom/picom.conf" ]]; then
-    cat > "$HOME/.config/picom/picom.conf" <<'PICOMEOF'
-backend = "glx"
-vsync = true
-blur-method = "dual_kawase"
-blur-strength = 10
-shadow = true
-shadow-radius = 8
-shadow-opacity = 0.3
-fading = true
-fade-in-step = 0.03
-fade-out-step = 0.03
-PICOMEOF
-    ok "picom config created"
+[module/cpu]
+type             = internal/cpu
+interval         = 1
+format           = <label>
+label            = 󰻠 %percentage%%
+label-foreground = ${colors.green}
+label-padding    = 1
+
+[module/memory]
+type             = internal/memory
+interval         = 2
+format           = <label>
+label            = 󰑭 %percentage%%
+label-foreground = ${colors.peach}
+label-padding    = 1
+
+[module/pulseaudio]
+type             = internal/pulseaudio
+format-volume    = <label-volume>
+label-volume     = 󰕾 %percentage%%
+label-volume-foreground = ${colors.mauve}
+label-volume-padding    = 1
+label-muted      = 󰖁 muted
+label-muted-foreground  = ${colors.surf2}
+POLYEOF
+    ok "polybar config created (Catppuccin Mocha)"
   fi
 }
 
-# ===== BSPWM =====
+# ===== BSPWM — Catppuccin Mocha (gh0stzk-inspired, most starred bspwm rice) ==
+# Inspired by: gh0stzk/dotfiles — 18-theme bspwm (Andrea/Emilia aesthetic)
 install_bspwm() {
-  info "Installing bspwm + polybar…"
+  info "Installing bspwm + polybar + rofi + dunst [Catppuccin Mocha]…"
 
-  for pkg in bspwm sxhkd polybar dmenu picom; do
+  for pkg in bspwm sxhkd polybar picom rofi dunst; do
     ensure_pkg "$pkg"
   done
-  ok "bspwm + polybar installed"
+  ok "bspwm stack installed"
+
+  write_rofi_catppuccin
+  write_dunst_catppuccin
+  write_kitty_catppuccin
+  write_picom_catppuccin
 
   mkdir -p "$HOME/.config/bspwm"
   if [[ ! -f "$HOME/.config/bspwm/bspwmrc" ]]; then
     cat > "$HOME/.config/bspwm/bspwmrc" <<'BSPWMEOF'
 #!/bin/bash
-bspc monitor -d 1 2 3 4 5
+# bspwmrc — Catppuccin Mocha  (gh0stzk-inspired)
 
-bspc config border_width 2
-bspc config window_gap 8
-bspc config focused_border_color "#7aa2f7"
-bspc config normal_border_color "#1a1b26"
-bspc config presel_border_color "#414868"
+# Desktops
+bspc monitor -d '󰲌' '󰲎' '󰲐' '󰲒' '󰲔' '󰲖' '󰲘' '󰲚' '󰲜'
 
-bspc config split_ratio 0.52
-bspc config borderless_monocle true
-bspc config gapless_monocle true
+# Window rules
+bspc config border_width          2
+bspc config window_gap            12
+bspc config split_ratio           0.52
+bspc config borderless_monocle    true
+bspc config gapless_monocle       true
+bspc config single_monocle        false
+bspc config focus_follows_pointer true
 
+# Catppuccin Mocha border colors
+bspc config focused_border_color   "#89b4fa"
+bspc config normal_border_color    "#313244"
+bspc config presel_feedback_color  "#a6e3a1"
+bspc config urgent_border_color    "#f38ba8"
+
+# Floating windows
+bspc rule -a Pavucontrol         state=floating  rectangle=700x500+0+0
+bspc rule -a 'Yad:*'            state=floating
+bspc rule -a Nitrogen            state=floating
+bspc rule -a feh                 state=floating
+
+# Autostart
 sxhkd &
-polybar main &
-picom -b &
+dunst &
+picom --config "$HOME/.config/picom/picom.conf" --daemon &
+killall polybar 2>/dev/null; polybar main &
 BSPWMEOF
     chmod +x "$HOME/.config/bspwm/bspwmrc"
-    ok "bspwm config created"
+    ok "bspwmrc created (Catppuccin Mocha)"
   fi
 
   mkdir -p "$HOME/.config/sxhkd"
   if [[ ! -f "$HOME/.config/sxhkd/sxhkdrc" ]]; then
     cat > "$HOME/.config/sxhkd/sxhkdrc" <<'SXHKDEOF'
+# sxhkdrc — gh0stzk-inspired keybindings
+
+# Terminal
 super + Return
 	kitty
+super + shift + Return
+	kitty --class floating
 
+# Launcher
 super + d
-	dmenu_run
+	rofi -show drun -theme ~/.config/rofi/catppuccin.rasi
+super + shift + d
+	rofi -show run  -theme ~/.config/rofi/catppuccin.rasi
+super + Tab
+	rofi -show window -theme ~/.config/rofi/catppuccin.rasi
 
-super + Shift + q
+# Window management
+super + shift + q
 	bspc node -c
+super + shift + k
+	bspc node -k
+super + f
+	bspc node -t fullscreen
+super + shift + space
+	bspc node -t floating
+super + ctrl + space
+	bspc node -t tiled
 
-super + Left
-	bspc node -f west
+# Focus / swap — vim keys
+super + {h,j,k,l}
+	bspc node -f {west,south,north,east}
+super + shift + {h,j,k,l}
+	bspc node -s {west,south,north,east}
+super + {Left,Down,Up,Right}
+	bspc node -f {west,south,north,east}
 
-super + Down
-	bspc node -f south
+# Resize
+super + alt + {h,j,k,l}
+	bspc node -z {left -20 0, bottom 0 20, top 0 -20, right 20 0}
+super + ctrl + {h,j,k,l}
+	bspc node -z {right -20 0, top 0 20, bottom 0 -20, left 20 0}
 
-super + Up
-	bspc node -f north
+# Preselect
+super + ctrl + {1-9}
+	bspc node -o 0.{1-9}
+super + ctrl + space
+	bspc node -p cancel
 
-super + Right
-	bspc node -f east
+# Desktops
+super + {1-9}
+	bspc desktop -f '^{1-9}'
+super + shift + {1-9}
+	bspc node -d '^{1-9}'
 
-super + {1-5}
-	bspc desktop -f '^{1-5}'
+# Cycle workspaces
+super + bracket{left,right}
+	bspc desktop -f {prev,next}.local
 
-super + shift + {1-5}
-	bspc node -d '^{1-5}'
+# Gaps
+super + ctrl + {equal,minus}
+	bspc config -d focused window_gap $((`bspc config -d focused window_gap` {+,-} 4))
+
+# Reload sxhkd
+super + Escape
+	pkill -USR1 -x sxhkd
+
+# Quit bspwm
+super + shift + e
+	bspc quit
 SXHKDEOF
-    ok "sxhkd keybindings created"
+    ok "sxhkdrc created"
   fi
 
+  # Polybar — Catppuccin Mocha (bspwm)
   mkdir -p "$HOME/.config/polybar"
   if [[ ! -f "$HOME/.config/polybar/config.ini" ]]; then
     cat > "$HOME/.config/polybar/config.ini" <<'POLYEOF'
+; polybar — Catppuccin Mocha  (bspwm / gh0stzk-inspired)
+
+[colors]
+base   = #1e1e2e
+surf0  = #313244
+surf1  = #45475a
+surf2  = #585b70
+text   = #cdd6f4
+sub1   = #bac2de
+blue   = #89b4fa
+mauve  = #cba6f7
+green  = #a6e3a1
+red    = #f38ba8
+peach  = #fab387
+yellow = #f9e2af
+laven  = #b4befe
+teal   = #94e2d5
+
 [bar/main]
-width = 100%
-height = 28
-background = #1a1b26
-foreground = #c0caf5
-line-color = #7aa2f7
-font-0 = JetBrainsMono Nerd Font:pixelsize=10
-modules-left = bspwm
-modules-right = cpu memory date
-module-margin = 1
-padding = 1
+width            = 100%
+height           = 36
+background       = ${colors.base}
+foreground       = ${colors.text}
+fixed-center     = true
+border-size      = 0
+padding-left     = 1
+padding-right    = 1
+module-margin    = 1
+font-0           = JetBrainsMono Nerd Font:size=11:weight=bold;2
+font-1           = JetBrainsMono Nerd Font:size=18;5
+separator        = |
+separator-foreground = ${colors.surf1}
+modules-left     = bspwm title
+modules-center   = date
+modules-right    = cpu memory pulseaudio
+tray-position    = right
+tray-padding     = 6
+cursor-click     = pointer
 
 [module/bspwm]
-type = internal/bspwm
-format = <label-state>
-label-focused-background = #7aa2f7
-label-focused-foreground = #1a1b26
-label-focused-padding = 2
+type                        = internal/bspwm
+format                      = <label-state>
+label-focused               = %name%
+label-focused-foreground    = ${colors.blue}
+label-focused-background    = ${colors.surf0}
+label-focused-underline     = ${colors.blue}
+label-focused-padding       = 2
+label-occupied              = %name%
+label-occupied-foreground   = ${colors.sub1}
+label-occupied-padding      = 2
+label-urgent                = %name%
+label-urgent-foreground     = ${colors.red}
+label-urgent-background     = ${colors.surf0}
+label-urgent-padding        = 2
+label-empty                 = %name%
+label-empty-foreground      = ${colors.surf2}
+label-empty-padding         = 2
 
-[module/cpu]
-type = internal/cpu
-format = <label>
-label = 󰻠 %percentage%%
-label-foreground = #9ece6a
-
-[module/memory]
-type = internal/memory
-format = <label>
-label = 󰑭 %percentage%%
-label-foreground = #e0af68
+[module/title]
+type             = internal/xwindow
+label            = %title%
+label-maxlen     = 45
+label-foreground = ${colors.sub1}
+label-empty      = Desktop
+label-empty-foreground = ${colors.surf1}
 
 [module/date]
-type = internal/date
-format = <label>
-date = %H:%M:%S
-label = 󰃭 %date%
-label-foreground = #7aa2f7
+type             = internal/date
+interval         = 1
+date             = %A, %d %B
+time             = %H:%M
+label            =  %date%    %time%
+label-foreground = ${colors.laven}
+
+[module/cpu]
+type             = internal/cpu
+interval         = 1
+label            = 󰻠 %percentage%%
+label-foreground = ${colors.green}
+label-padding    = 1
+
+[module/memory]
+type             = internal/memory
+interval         = 2
+label            = 󰑭 %percentage%%
+label-foreground = ${colors.peach}
+label-padding    = 1
+
+[module/pulseaudio]
+type             = internal/pulseaudio
+label-volume     = 󰕾 %percentage%%
+label-volume-foreground = ${colors.mauve}
+label-muted      = 󰖁 muted
+label-muted-foreground  = ${colors.surf2}
 POLYEOF
-    ok "polybar config created"
+    ok "polybar config created (Catppuccin Mocha)"
   fi
 }
 
-# ===== HYPRLAND =====
+# ===== HYPRLAND — Catppuccin Mocha Frosted Glass ==============
+# Inspired by: JaKooLit/Hyprland-Dots (3.4k stars), sameemul-haque/dotfiles
+# Most popular Hyprland aesthetic on r/unixporn 2024-2025
 install_hyprland() {
-  info "Installing hyprland + waybar…"
+  info "Installing hyprland + waybar + swww + swaync [Catppuccin Mocha]…"
 
-  for pkg in hyprland hyprlock hypridle waybar mako dmenu wl-clipboard; do
+  for pkg in hyprland hyprlock hypridle waybar mako wl-clipboard rofi; do
     ensure_pkg "$pkg"
   done
-  ok "hyprland + waybar installed"
+
+  # swww for wallpaper management (key part of popular Hyprland setups)
+  if ! command -v swww >/dev/null 2>&1; then
+    case "$PM" in
+      pacman) sudo pacman -S --noconfirm --needed swww 2>/dev/null || \
+              warn "Install swww from AUR: yay -S swww" ;;
+      *) warn "Install swww manually: https://github.com/LGFae/swww" ;;
+    esac
+  fi
+
+  write_kitty_catppuccin
+  write_rofi_catppuccin
+
+  ok "Hyprland stack installed"
 
   mkdir -p "$HOME/.config/hypr"
   if [[ ! -f "$HOME/.config/hypr/hyprland.conf" ]]; then
     cat > "$HOME/.config/hypr/hyprland.conf" <<'HYPREOF'
+# hyprland.conf — Catppuccin Mocha Frosted Glass
+# Inspired by: JaKooLit/Hyprland-Dots, sameemul-haque/dotfiles (r/unixporn)
+
 monitor=,highres,auto,1
 
+# Environment
 env = XCURSOR_SIZE,24
+env = XCURSOR_THEME,catppuccin-mocha-dark-cursors
+env = QT_QPA_PLATFORMTHEME,qt6ct
+env = QT_QPA_PLATFORM,wayland
+env = GDK_BACKEND,wayland,x11
+env = XDG_CURRENT_DESKTOP,Hyprland
+env = XDG_SESSION_TYPE,wayland
+env = XDG_SESSION_DESKTOP,Hyprland
 
+# Autostart
+exec-once = waybar
+exec-once = dunst
+exec-once = /usr/lib/polkit-kde-authentication-agent-1
+exec-once = swww-daemon
+exec-once = hypridle
+exec-once = wl-paste --type text  --watch cliphist store
+exec-once = wl-paste --type image --watch cliphist store
+
+# General
 general {
-    gaps_in = 5
-    gaps_out = 20
-    border_size = 2
-    col.active_border = rgba(7aa2f7ff)
-    col.inactive_border = rgba(1a1b26ff)
-    layout = dwindle
-    allow_tearing = false
+    gaps_in              = 6
+    gaps_out             = 15
+    border_size          = 2
+    col.active_border    = rgba(89b4faff) rgba(cba6f7ff) 45deg
+    col.inactive_border  = rgba(313244ff)
+    layout               = dwindle
+    allow_tearing        = false
+    resize_on_border     = true
 }
 
+# Decoration — frosted glass (the iconic Hyprland look)
 decoration {
-    rounding = 10
+    rounding             = 12
+
+    active_opacity       = 1.0
+    inactive_opacity     = 0.92
+    fullscreen_opacity   = 1.0
+
     blur {
-        enabled = true
-        size = 3
-        passes = 1
+        enabled          = true
+        size             = 8
+        passes           = 3
+        noise            = 0.0117
+        contrast         = 0.8916
+        brightness       = 0.8172
+        vibrancy         = 0.1696
+        vibrancy_darkness = 0.0
+        new_optimizations = true
+        xray             = false
+        special          = true
     }
-    drop_shadow = yes
-    shadow_range = 4
-    shadow_render_power = 3
-    col.shadow = rgba(1a1a1aee)
+
+    drop_shadow          = true
+    shadow_range         = 30
+    shadow_render_power  = 3
+    shadow_color         = rgba(1a1a1aee)
+    shadow_ignore_window = true
 }
 
+# Animations — smooth Catppuccin-style
 animations {
     enabled = yes
-    bezier = myBezier, 0.05, 0.9, 0.1, 1.05
-    animation = windows, 1, 7, myBezier
-    animation = windowsOut, 1, 7, default, popin 80%
-    animation = border, 1, 10, default
-    animation = fade, 1, 7, default
-    animation = workspaces, 1, 6, default
+
+    bezier = overshot,    0.05, 0.9, 0.1, 1.05
+    bezier = smoothOut,   0.5,  0,   0.99, 0.99
+    bezier = smoothIn,    0.5, -0.5, 0.68, 1.5
+    bezier = linear,      0.0,  0.0, 1.0,  1.0
+
+    animation = windows,     1, 5, overshot,  slide
+    animation = windowsIn,   1, 5, overshot,  slide
+    animation = windowsOut,  1, 4, smoothOut, slide
+    animation = windowsMove, 1, 4, smoothIn,  slide
+    animation = border,      1, 10, linear
+    animation = borderangle, 1, 100, linear, loop
+    animation = fade,        1, 5, smoothIn
+    animation = fadeOut,     1, 5, smoothOut
+    animation = workspaces,  1, 6, overshot, slidevert
 }
 
+# Layouts
 dwindle {
-    pseudotile = yes
-    preserve_split = yes
+    pseudotile         = yes
+    preserve_split     = yes
+    smart_split        = false
+    smart_resizing     = true
 }
 
+master {
+    new_is_master      = true
+}
+
+# Input
 input {
-    kb_layout = us
-    follow_mouse = 1
-    sensitivity = 0
+    kb_layout         = us
+    follow_mouse      = 1
+    sensitivity       = 0
+    touchpad {
+        natural_scroll = yes
+        tap-to-click   = yes
+    }
 }
 
+gestures {
+    workspace_swipe         = true
+    workspace_swipe_fingers = 3
+}
+
+# Misc
+misc {
+    force_default_wallpaper = 0
+    disable_hyprland_logo   = true
+    disable_splash_rendering = true
+    mouse_move_enables_dpms = true
+    key_press_enables_dpms  = true
+}
+
+# Window rules
+windowrulev2 = suppressevent maximize, class:.*
+windowrulev2 = float,  class:^(Pavucontrol)$
+windowrulev2 = float,  class:^(blueman-manager)$
+windowrulev2 = float,  class:^(nm-connection-editor)$
+windowrulev2 = float,  title:^(Picture-in-Picture)$
+windowrulev2 = float,  class:^(org.kde.polkit-kde-authentication-agent-1)$
+windowrulev2 = opacity 0.88 0.88, class:^(kitty)$
+windowrulev2 = opacity 0.90 0.85, class:^(Code)$
+windowrulev2 = opacity 0.85 0.80, class:^(org.pwmt.zathura)$
+
+# Layer rules (blur on waybar, rofi, dunst)
+layerrule = blur, waybar
+layerrule = blur, rofi
+layerrule = ignorezero, rofi
+
+# Keybindings
 $mainMod = SUPER
 
-bind = $mainMod, Q, exec, kitty
-bind = $mainMod, M, exit
-bind = $mainMod, E, exec, dmenu_run
-bind = $mainMod, Space, togglefloating
+# Core
+bind = $mainMod,       Return,     exec, kitty
+bind = $mainMod,       Q,          killactive
+bind = $mainMod SHIFT, E,          exit
+bind = $mainMod,       F,          fullscreen, 0
+bind = $mainMod SHIFT, F,          fullscreen, 1
+bind = $mainMod,       Space,      togglefloating
+bind = $mainMod,       P,          pseudo
+bind = $mainMod,       J,          togglesplit
 
-bind = $mainMod, left, movefocus, l
+# Launcher (rofi with Catppuccin theme)
+bind = $mainMod, D,          exec, rofi -show drun   -theme ~/.config/rofi/catppuccin.rasi
+bind = $mainMod, R,          exec, rofi -show run    -theme ~/.config/rofi/catppuccin.rasi
+bind = $mainMod, Tab,        exec, rofi -show window -theme ~/.config/rofi/catppuccin.rasi
+
+# Wallpaper
+bind = $mainMod, W, exec, swww img "$(find ~/Pictures/wallpapers -type f | shuf -n1)" \
+    --transition-type random --transition-duration 1
+
+# Screenshots
+bind = ,      Print, exec, hyprshot -m output
+bind = SHIFT, Print, exec, hyprshot -m region
+
+# Focus
+bind = $mainMod, H,     movefocus, l
+bind = $mainMod, J,     movefocus, d
+bind = $mainMod, K,     movefocus, u
+bind = $mainMod, L,     movefocus, r
+bind = $mainMod, left,  movefocus, l
+bind = $mainMod, down,  movefocus, d
+bind = $mainMod, up,    movefocus, u
 bind = $mainMod, right, movefocus, r
-bind = $mainMod, up, movefocus, u
-bind = $mainMod, down, movefocus, d
 
+# Move windows
+bind = $mainMod SHIFT, H,     movewindow, l
+bind = $mainMod SHIFT, J,     movewindow, d
+bind = $mainMod SHIFT, K,     movewindow, u
+bind = $mainMod SHIFT, L,     movewindow, r
+
+# Resize
+binde = $mainMod CTRL, H, resizeactive, -30 0
+binde = $mainMod CTRL, J, resizeactive, 0  30
+binde = $mainMod CTRL, K, resizeactive, 0 -30
+binde = $mainMod CTRL, L, resizeactive,  30 0
+
+# Workspaces
 bind = $mainMod, 1, workspace, 1
 bind = $mainMod, 2, workspace, 2
 bind = $mainMod, 3, workspace, 3
 bind = $mainMod, 4, workspace, 4
 bind = $mainMod, 5, workspace, 5
+bind = $mainMod, 6, workspace, 6
+bind = $mainMod, 7, workspace, 7
+bind = $mainMod, 8, workspace, 8
+bind = $mainMod, 9, workspace, 9
 
 bind = $mainMod SHIFT, 1, movetoworkspace, 1
 bind = $mainMod SHIFT, 2, movetoworkspace, 2
 bind = $mainMod SHIFT, 3, movetoworkspace, 3
 bind = $mainMod SHIFT, 4, movetoworkspace, 4
 bind = $mainMod SHIFT, 5, movetoworkspace, 5
+bind = $mainMod SHIFT, 6, movetoworkspace, 6
+bind = $mainMod SHIFT, 7, movetoworkspace, 7
+bind = $mainMod SHIFT, 8, movetoworkspace, 8
+bind = $mainMod SHIFT, 9, movetoworkspace, 9
 
-windowrulev2 = suppressevent maximize, class:.*
+# Scroll workspaces
+bind = $mainMod, mouse_down, workspace, e+1
+bind = $mainMod, mouse_up,   workspace, e-1
 
-exec-once = waybar
-exec-once = mako
+# Move/resize with mouse
+bindm = $mainMod, mouse:272, movewindow
+bindm = $mainMod, mouse:273, resizewindow
+
+# Volume / brightness
+bindl = , XF86AudioRaiseVolume,  exec, wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@   5%+
+bindl = , XF86AudioLowerVolume,  exec, wpctl set-volume @DEFAULT_AUDIO_SINK@          5%-
+bindl = , XF86AudioMute,         exec, wpctl set-mute   @DEFAULT_AUDIO_SINK@          toggle
+bindl = , XF86MonBrightnessUp,   exec, brightnessctl set 10%+
+bindl = , XF86MonBrightnessDown, exec, brightnessctl set 10%-
 HYPREOF
-    ok "hyprland config created"
+    ok "hyprland.conf created (Catppuccin Mocha Frosted Glass)"
   fi
 
+  # Waybar — floating frosted glass bottom bar
   mkdir -p "$HOME/.config/waybar"
   if [[ ! -f "$HOME/.config/waybar/config" ]]; then
     cat > "$HOME/.config/waybar/config" <<'WAYBAREOF'
 {
-  "position": "top",
-  "height": 28,
-  "modules-left": ["hyprland/workspaces"],
-  "modules-center": ["hyprland/window"],
-  "modules-right": ["cpu", "memory", "pulseaudio", "clock"],
+  "layer":     "top",
+  "position":  "top",
+  "height":    38,
+  "spacing":   4,
+  "margin-top":    8,
+  "margin-left":   12,
+  "margin-right":  12,
+
+  "modules-left":   ["hyprland/workspaces", "hyprland/window"],
+  "modules-center": ["clock"],
+  "modules-right":  ["pulseaudio", "network", "cpu", "memory", "battery", "tray"],
 
   "hyprland/workspaces": {
-    "format": "{icon}",
+    "format":        "{icon}",
+    "on-scroll-up":  "hyprctl dispatch workspace e+1",
+    "on-scroll-down":"hyprctl dispatch workspace e-1",
     "format-icons": {
-      "1": "󰣇",
-      "2": "󰈹",
-      "3": "󰨞",
-      "4": "󰊢",
-      "5": "󱇪"
-    }
+      "1": "󰲌", "2": "󰲎", "3": "󰲐", "4": "󰲒", "5": "󰲔",
+      "6": "󰲖", "7": "󰲘", "8": "󰲚", "9": "󰲜",
+      "urgent":  "󱍒",
+      "focused": "󰮯",
+      "default": "○"
+    },
+    "persistent-workspaces": { "*": 9 }
   },
-  "cpu":        { "format": "󰻠 {usage}%" },
-  "memory":     { "format": "󰑭 {percentage}%" },
-  "pulseaudio": { "format": "󰕾 {volume}%" },
-  "clock":      { "format": "󰃭 {:%H:%M:%S}" }
+  "hyprland/window": {
+    "max-length":  40,
+    "separate-outputs": true
+  },
+  "clock": {
+    "format":      "  {:%H:%M}",
+    "format-alt":  "  {:%A, %d %B %Y}",
+    "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+  },
+  "cpu": {
+    "interval": 2,
+    "format":   "󰻠 {usage}%",
+    "tooltip":  true
+  },
+  "memory": {
+    "interval": 5,
+    "format":   "󰑭 {percentage}%",
+    "tooltip-format": "{used:0.1f}G / {total:0.1f}G"
+  },
+  "battery": {
+    "states":       { "good": 95, "warning": 30, "critical": 15 },
+    "format":       "{icon} {capacity}%",
+    "format-full":  "󰁹 {capacity}%",
+    "format-icons": ["󰁺","󰁻","󰁼","󰁽","󰁾","󰁿","󰂀","󰂁","󰂂","󰁹"]
+  },
+  "network": {
+    "format-wifi":       "󰤨 {essid}",
+    "format-ethernet":   "󰈀 {ifname}",
+    "format-disconnected":"󰤭 offline",
+    "tooltip-format":    "{ipaddr}"
+  },
+  "pulseaudio": {
+    "format":          "{icon} {volume}%",
+    "format-muted":    "󰖁 muted",
+    "format-icons":    { "default": ["󰕿","󰖀","󰕾"] },
+    "on-click":        "pavucontrol"
+  },
+  "tray": {
+    "icon-size":   18,
+    "spacing":     8
+  }
 }
 WAYBAREOF
 
     cat > "$HOME/.config/waybar/style.css" <<'WAYBARCSSEOF'
+/* waybar — Catppuccin Mocha Frosted Glass (r/unixporn top Hyprland style) */
 * {
-  all: unset;
-  font-family: "JetBrainsMono Nerd Font";
-  font-size: 12px;
+  border:        none;
+  border-radius: 0;
+  font-family:   "JetBrainsMono Nerd Font";
+  font-size:     12px;
+  min-height:    0;
 }
 
-window {
-  background-color: #1a1b26;
-  color: #c0caf5;
-  border-bottom: 2px solid #7aa2f7;
+window#waybar {
+  background:    rgba(30, 30, 46, 0.82);
+  color:         #cdd6f4;
+  border-radius: 14px;
+  border:        1px solid rgba(137, 180, 250, 0.25);
 }
 
+tooltip {
+  background:    rgba(30, 30, 46, 0.95);
+  border:        1px solid rgba(137, 180, 250, 0.4);
+  border-radius: 8px;
+  color:         #cdd6f4;
+}
+
+/* Workspaces */
+#workspaces {
+  padding: 0 6px;
+}
 #workspaces button {
-  padding: 0 8px;
-  margin: 0 2px;
+  padding:       4px 8px;
+  margin:        2px 2px;
+  border-radius: 8px;
+  color:         #6c7086;
+  background:    transparent;
+  transition:    all 0.2s ease;
 }
-
+#workspaces button.focused,
 #workspaces button.active {
-  background-color: #7aa2f7;
-  color: #1a1b26;
-  border-radius: 4px;
+  color:      #89b4fa;
+  background: rgba(137, 180, 250, 0.18);
+}
+#workspaces button.urgent {
+  color:      #f38ba8;
+  background: rgba(243, 139, 168, 0.18);
+}
+#workspaces button:hover {
+  color:      #cdd6f4;
+  background: rgba(205, 214, 244, 0.1);
 }
 
-#cpu        { color: #9ece6a; padding: 0 10px; }
-#memory     { color: #e0af68; padding: 0 10px; }
-#pulseaudio { color: #7aa2f7; padding: 0 10px; }
-#clock      { color: #7aa2f7; padding: 0 10px; }
+/* Window title */
+#window {
+  color:        #a6adc8;
+  font-style:   italic;
+  padding:      0 8px;
+}
+
+/* Clock */
+#clock {
+  color:         #b4befe;
+  font-weight:   bold;
+  padding:       0 12px;
+}
+
+/* Modules right */
+#cpu        { color: #a6e3a1; padding: 0 8px; }
+#memory     { color: #fab387; padding: 0 8px; }
+#battery    { color: #f9e2af; padding: 0 8px; }
+#network    { color: #89dceb; padding: 0 8px; }
+#pulseaudio { color: #cba6f7; padding: 0 8px; }
+#tray       { padding: 0 6px; }
+
+#battery.warning  { color: #f9e2af; }
+#battery.critical { color: #f38ba8; animation-name: blink; animation-duration: 0.5s; animation-iteration-count: infinite; }
 WAYBARCSSEOF
 
-    ok "waybar config created"
+    # hyprlock — Catppuccin lock screen
+    cat > "$HOME/.config/hypr/hyprlock.conf" <<'HYPRLOCKCEOF'
+# hyprlock — Catppuccin Mocha
+background {
+    monitor     =
+    blur_passes = 3
+    blur_size   = 8
+    noise       = 0.0117
+    contrast    = 1.0
+    brightness  = 0.5
+}
+input-field {
+    monitor       =
+    size          = 300, 50
+    outline_thickness = 2
+    dots_size     = 0.33
+    dots_spacing  = 0.15
+    outer_color   = rgba(89b4faff)
+    inner_color   = rgba(30,30,46,0.9)
+    font_color    = rgb(cdd6f4)
+    fade_on_empty = true
+    placeholder_text = <i>Password...</i>
+    hide_input    = false
+    position      = 0, -120
+    halign        = center
+    valign        = center
+}
+label {
+    monitor   =
+    text      = cmd[update:1000] echo "$(date +'%H:%M')"
+    color     = rgba(203, 166, 247, 0.9)
+    font_size = 90
+    font_family = JetBrainsMono Nerd Font
+    position  = 0, 80
+    halign    = center
+    valign    = center
+}
+label {
+    monitor   =
+    text      = cmd[update:1000] echo "$(date +'%A, %d %B %Y')"
+    color     = rgba(205, 214, 244, 0.7)
+    font_size = 18
+    font_family = JetBrainsMono Nerd Font
+    position  = 0, -20
+    halign    = center
+    valign    = center
+}
+HYPRLOCKCEOF
+
+    ok "waybar + hyprlock created (Catppuccin Mocha Frosted Glass)"
   fi
 }
 
-# ===== KDE PLASMA =====
+# ===== KDE PLASMA — Catppuccin KDE (most starred KDE rice on GitHub) ==========
+# Inspired by: catppuccin/kde + Kvantum theming
 install_kde() {
-  info "Installing KDE Plasma…"
+  info "Installing KDE Plasma + Catppuccin theme + Kvantum…"
   ensure_pkg "kde"
-  ok "KDE Plasma installed"
-  warn "KDE Plasma installed. Configure via System Settings > Appearance"
+
+  # Install Kvantum (app theming engine, essential for Catppuccin KDE)
+  case "$PM" in
+    pacman) sudo pacman -S --noconfirm --needed kvantum qt5ct qt6ct kvantum-qt5 2>/dev/null || true ;;
+    apt)    sudo apt-get install -y qt5-style-kvantum qt5-style-kvantum-themes 2>/dev/null || true ;;
+    dnf)    sudo dnf install -y kvantum 2>/dev/null || true ;;
+    *) warn "Install Kvantum manually for app theming" ;;
+  esac
+
+  ok "KDE + Kvantum installed"
+
+  # Clone and install Catppuccin KDE (official theme)
+  if [[ ! -d "$HOME/.themes/Catppuccin-Mocha-Blue" ]]; then
+    info "Installing Catppuccin KDE theme…"
+    cd /tmp
+    git clone --depth=1 https://github.com/catppuccin/kde catppuccin-kde 2>/dev/null || true
+    if [[ -d catppuccin-kde ]]; then
+      mkdir -p "$HOME/.themes" "$HOME/.local/share/plasma/desktoptheme" \
+               "$HOME/.local/share/color-schemes" "$HOME/.local/share/aurorae/themes"
+      # Run their installer if it exists, otherwise copy manually
+      if [[ -f catppuccin-kde/install.sh ]]; then
+        bash catppuccin-kde/install.sh --flavor mocha --accent blue 2>/dev/null || true
+      fi
+      ok "Catppuccin KDE theme installed"
+    fi
+    cd - >/dev/null
+  fi
+
+  # Clone Kvantum Catppuccin theme
+  if [[ ! -d "$HOME/.config/Kvantum/catppuccin-mocha-blue" ]]; then
+    info "Installing Catppuccin Kvantum theme…"
+    cd /tmp
+    git clone --depth=1 https://github.com/catppuccin/Kvantum catppuccin-kvantum 2>/dev/null || true
+    if [[ -d catppuccin-kvantum ]]; then
+      mkdir -p "$HOME/.config/Kvantum"
+      cp -r catppuccin-kvantum/themes/catppuccin-mocha-blue "$HOME/.config/Kvantum/" 2>/dev/null || true
+      ok "Kvantum Catppuccin theme copied"
+    fi
+    cd - >/dev/null
+  fi
+
+  # Apply via kwriteconfig (KDE config tool)
+  if command -v kwriteconfig6 >/dev/null 2>&1 || command -v kwriteconfig5 >/dev/null 2>&1; then
+    _kw() { command -v kwriteconfig6 >/dev/null 2>&1 && kwriteconfig6 "$@" || kwriteconfig5 "$@"; }
+
+    # Color scheme
+    _kw --file kdeglobals --group General --key ColorScheme "CatppuccinMochaBlue"
+
+    # Window decoration
+    _kw --file kwinrc --group org.kde.kdecoration2 --key theme "__aurorae__svg__CatppuccinMochaBlue"
+    _kw --file kwinrc --group org.kde.kdecoration2 --key library "org.kde.kwin.aurorae"
+
+    # Blur effects
+    _kw --file kwinrc --group Plugins --key blurEnabled "true"
+    _kw --file kwinrc --group Effect-blur --key BlurStrength "6"
+
+    # Rounded corners (KWin)
+    _kw --file kwinrc --group Plugins --key roundedcornersEnabled "true"
+
+    # Icon theme
+    _kw --file kdeglobals --group Icons --key Theme "Papirus-Dark"
+
+    # Kvantum engine for Qt apps
+    _kw --file kdeglobals --group KDE --key widgetStyle "kvantum-dark"
+
+    # Konsole catppuccin profile
+    mkdir -p "$HOME/.local/share/konsole"
+    cat > "$HOME/.local/share/konsole/Catppuccin.profile" <<'KONSOLEEOF'
+[Appearance]
+ColorScheme=Catppuccin-Mocha
+Font=JetBrainsMono Nerd Font,12,-1,5,50,0,0,0,0,0
+
+[General]
+Name=Catppuccin
+Parent=FALLBACK/
+TerminalColumns=120
+TerminalRows=30
+KONSOLEEOF
+
+    # Konsole Catppuccin color scheme
+    mkdir -p "$HOME/.local/share/konsole"
+    cat > "$HOME/.local/share/konsole/Catppuccin-Mocha.colorscheme" <<'COLORSEOF'
+[Background]
+Color=30,30,46
+
+[BackgroundIntense]
+Color=24,24,37
+
+[Foreground]
+Color=205,214,244
+
+[ForegroundIntense]
+Color=205,214,244
+
+[Color0]
+Color=69,71,90
+
+[Color1]
+Color=243,139,168
+
+[Color2]
+Color=166,227,161
+
+[Color3]
+Color=249,226,175
+
+[Color4]
+Color=137,180,250
+
+[Color5]
+Color=203,166,247
+
+[Color6]
+Color=148,226,213
+
+[Color7]
+Color=186,194,222
+
+[Color0Intense]
+Color=88,91,112
+
+[Color1Intense]
+Color=243,139,168
+
+[Color2Intense]
+Color=166,227,161
+
+[Color3Intense]
+Color=249,226,175
+
+[Color4Intense]
+Color=137,180,250
+
+[Color5Intense]
+Color=203,166,247
+
+[Color6Intense]
+Color=148,226,213
+
+[Color7Intense]
+Color=166,173,200
+
+[General]
+Anchor=0.5,0.5
+Blur=true
+ColorRandomization=false
+Description=Catppuccin Mocha
+FillStyle=Tile
+Opacity=0.92
+Wallpaper=
+COLORSEOF
+
+    ok "KDE Catppuccin theme applied"
+    warn "Log out and back in (or run: qdbus org.kde.KWin /KWin reconfigure) to apply"
+  else
+    warn "kwriteconfig not found — apply Catppuccin theme manually in System Settings"
+    warn "Theme name: Catppuccin Mocha Blue  |  Icons: Papirus-Dark  |  Engine: Kvantum"
+  fi
 }
 
 case "$CHOSEN_WM" in
