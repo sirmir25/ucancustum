@@ -63,7 +63,7 @@ install_build_deps() {
     zypper) pm_install gcc make libX11-devel libXft-devel libXinerama-devel ;;
     xbps)   pm_install base-devel libX11-devel libXft-devel libXinerama-devel ;;
   esac
-  pm_install git curl
+  pm_install git curl feh
   ok "Build dependencies ready"
 }
 
@@ -663,19 +663,33 @@ if [[ -d dwm ]]; then
   rm -rf dwm.bak 2>/dev/null || true
   mv dwm dwm.bak
 fi
-git clone https://github.com/bakkeby/dwm-flexipatch.git dwm >/dev/null 2>&1
+if ! git clone https://github.com/bakkeby/dwm-flexipatch.git dwm 2>&1; then
+  err "git clone failed — check your internet connection."
+  exit 1
+fi
 ok "Cloned to $BUILDS/dwm"
 cd "$BUILDS/dwm"
 
 # ── 7. patches.h ──────────────────────────────────────────
 info "Configuring patches.h…"
 
-[[ -f patches.h ]] || { err "patches.h not found — repo layout may have changed."; exit 1; }
+# dwm-flexipatch keeps patches.h in root; find it in case layout changed
+PATCHES_H=""
+for candidate in patches.h patch/patches.h patches/patches.h; do
+  [[ -f "$candidate" ]] && { PATCHES_H="$candidate"; break; }
+done
+if [[ -z "$PATCHES_H" ]]; then
+  err "patches.h not found. Files in repo root:"
+  ls -1
+  err "Try: cd $BUILDS/dwm && find . -name patches.h"
+  exit 1
+fi
+info "Found patches.h at: $PATCHES_H"
 
 enable_patch() {
   local p="$1"
-  if grep -qE "^#define ${p}" patches.h; then
-    sed -i "s/^#define ${p}.*/#define ${p} 1/" patches.h
+  if grep -qE "^#define ${p}" "$PATCHES_H"; then
+    sed -i "s/^#define ${p}.*/#define ${p} 1/" "$PATCHES_H"
     ok "  Enabled: $p"
   else
     warn "  Patch '$p' not found in patches.h (may have a different name this version)"
@@ -976,7 +990,12 @@ info "Writing ~/.xinitrc…"
   printf '# Monitor layout (edit ~/.config/dwm/monitors.sh to change)\n'
   printf '[ -x "$HOME/.config/dwm/monitors.sh" ] && "$HOME/.config/dwm/monitors.sh"\n\n'
 
-  printf 'xsetroot -solid "%s"\n\n' "$COL_BG"
+  printf '# Wallpaper — feh picks a random image from ~/.wallpapers/\n'
+  printf 'if [ -d "$HOME/.wallpapers" ] && command -v feh >/dev/null 2>&1; then\n'
+  printf '    feh --randomize --bg-fill "$HOME/.wallpapers/"\n'
+  printf 'else\n'
+  printf '    xsetroot -solid "%s"\n' "$COL_BG"
+  printf 'fi\n\n'
 
   case "$BAR_NAME" in
     slstatus)  printf 'slstatus &\n' ;;
@@ -1074,6 +1093,39 @@ if [[ "$USE_AUTOSTART" == "1" ]]; then
   } > "$AUTOSTART_DIR/autostart.sh"
   chmod +x "$AUTOSTART_DIR/autostart.sh"
   ok "Autostart: $AUTOSTART_DIR/autostart.sh"
+fi
+
+# ── 15. wallpapers ────────────────────────────────────────
+info "Setting up wallpapers…"
+WALL_DIR="$HOME/.wallpapers"
+mkdir -p "$WALL_DIR"
+
+# Copy bundled personal wallpaper from the script directory (if present)
+SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+if [[ -d "$SCRIPT_DIR/wallpapers" ]]; then
+  cp -n "$SCRIPT_DIR/wallpapers/"* "$WALL_DIR/" 2>/dev/null || true
+  ok "Bundled wallpapers copied to ~/.wallpapers/"
+fi
+
+# Download Catppuccin wallpapers if the directory is still empty
+if [[ -z "$(ls -A "$WALL_DIR" 2>/dev/null)" ]]; then
+  info "Downloading Catppuccin wallpapers…"
+  local_tmp="/tmp/catppuccin-walls-$$"
+  if git clone --depth=1 --filter=blob:none --no-checkout \
+       https://github.com/catppuccin/wallpapers.git "$local_tmp" 2>/dev/null; then
+    git -C "$local_tmp" sparse-checkout set --cone misc landscapes minimalistic 2>/dev/null || true
+    git -C "$local_tmp" checkout 2>/dev/null || true
+    find "$local_tmp" \( -name '*.png' -o -name '*.jpg' \) -not -path '*/.git/*' \
+      -exec cp {} "$WALL_DIR/" \; 2>/dev/null || true
+    rm -rf "$local_tmp"
+    ok "Catppuccin wallpapers downloaded to ~/.wallpapers/"
+  else
+    warn "Could not download wallpapers — place a PNG/JPG in ~/.wallpapers/ manually"
+  fi
+fi
+
+if [[ -n "$(ls -A "$WALL_DIR" 2>/dev/null)" ]]; then
+  ok "Wallpapers ready in ~/.wallpapers/ (feh will pick one randomly on login)"
 fi
 
 # ═════════════════════════════════════════════════════════
