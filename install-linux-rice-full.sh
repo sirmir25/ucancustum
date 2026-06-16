@@ -775,12 +775,89 @@ PICOMEOF
   ok "picom Catppuccin config written"
 }
 
+# ── Shared: Catppuccin wallpapers ─────────────────────────────────────────────
+# Downloads catppuccin/wallpapers repo into ~/.wallpapers/.
+# Sets WALLPAPER_PATH to the primary wallpaper file.
+setup_wallpaper() {
+  local dir="$HOME/.wallpapers"
+  WALLPAPER_PATH=""
+
+  # Already have one — nothing to do
+  if [[ -f "$dir/catppuccin-mocha.png" ]]; then
+    WALLPAPER_PATH="$dir/catppuccin-mocha.png"
+    ok "Wallpaper already exists: $WALLPAPER_PATH"
+    return 0
+  fi
+
+  mkdir -p "$dir"
+  info "Downloading Catppuccin wallpapers (~50 MB)…"
+
+  # Method 1: sparse git clone — gets every PNG without blobs we don't need
+  if command -v git >/dev/null 2>&1; then
+    local tmp
+    tmp="/tmp/catppuccin-wallpapers-$$"
+    if git clone --depth=1 --filter=blob:none --no-checkout \
+         https://github.com/catppuccin/wallpapers.git "$tmp" 2>/dev/null; then
+      git -C "$tmp" sparse-checkout set --cone misc landscapes minimalistic 2>/dev/null || true
+      git -C "$tmp" checkout 2>/dev/null || true
+      local found
+      found="$(find "$tmp" \( -name '*.png' -o -name '*.jpg' \) -not -path '*/.git/*' \
+               | head -50)"
+      if [[ -n "$found" ]]; then
+        echo "$found" | while IFS= read -r f; do
+          cp "$f" "$dir/" 2>/dev/null || true
+        done
+        # Pick a single "default" — prefer something scenic
+        local pick
+        pick="$(find "$dir" \( -name '*.png' -o -name '*.jpg' \) | grep -i 'evening\|night\|space\|cat' | head -1)"
+        [[ -z "$pick" ]] && pick="$(find "$dir" \( -name '*.png' -o -name '*.jpg' \) | head -1)"
+        if [[ -n "$pick" ]]; then
+          cp "$pick" "$dir/catppuccin-mocha.png" 2>/dev/null || true
+          ok "Catppuccin wallpapers ready in ~/.wallpapers/ (default: $(basename "$pick"))"
+        fi
+      fi
+      rm -rf "$tmp"
+    fi
+  fi
+
+  # Method 2: single curl download
+  if [[ ! -f "$dir/catppuccin-mocha.png" ]]; then
+    local urls=(
+      "https://raw.githubusercontent.com/catppuccin/wallpapers/main/landscapes/evening-sky.png"
+      "https://raw.githubusercontent.com/catppuccin/wallpapers/main/misc/cat-sound.png"
+      "https://raw.githubusercontent.com/catppuccin/wallpapers/main/minimalistic/cat.png"
+    )
+    for url in "${urls[@]}"; do
+      if curl -fsSL --connect-timeout 12 "$url" -o "$dir/catppuccin-mocha.png" 2>/dev/null; then
+        ok "Wallpaper downloaded: $dir/catppuccin-mocha.png"
+        break
+      fi
+    done
+  fi
+
+  # Method 3: generate gradient with ImageMagick
+  if [[ ! -f "$dir/catppuccin-mocha.png" ]] && command -v convert >/dev/null 2>&1; then
+    convert -size 1920x1080 \
+      gradient:"#1e1e2e"-"#181825" \
+      -gravity Center \
+      -fill '#89b4fa' -pointsize 64 -annotate 0 '󰄛' \
+      "$dir/catppuccin-mocha.png" 2>/dev/null \
+      && ok "Generated Catppuccin gradient wallpaper" || true
+  fi
+
+  if [[ -f "$dir/catppuccin-mocha.png" ]]; then
+    WALLPAPER_PATH="$dir/catppuccin-mocha.png"
+  else
+    warn "Could not fetch wallpaper — place a PNG/JPG in ~/.wallpapers/ and re-run"
+  fi
+}
+
 # ===== I3 — Catppuccin Mocha (most popular r/unixporn i3 style) ===============
 # Inspired by: top i3 rices on r/unixporn (catppuccin + polybar + rofi + picom)
 install_i3() {
   info "Installing i3 + polybar + rofi + dunst [Catppuccin Mocha]…"
 
-  for pkg in i3 polybar picom rofi dunst; do
+  for pkg in i3 polybar picom rofi dunst feh; do
     ensure_pkg "$pkg"
   done
   ok "i3 stack installed"
@@ -789,6 +866,7 @@ install_i3() {
   write_dunst_catppuccin
   write_kitty_catppuccin
   write_picom_catppuccin
+  setup_wallpaper
 
   mkdir -p "$HOME/.config/i3"
   if [[ ! -f "$HOME/.config/i3/config" ]]; then
@@ -917,7 +995,8 @@ for_window [class="Nitrogen"]             floating enable
 exec_always --no-startup-id killall dunst;  dunst &
 exec_always --no-startup-id killall polybar; sleep 0.5; polybar main &
 exec_always --no-startup-id picom --config ~/.config/picom/picom.conf -b
-exec        --no-startup-id xsetroot -solid "#1e1e2e"
+exec_always --no-startup-id feh --randomize --bg-fill ~/.wallpapers/ 2>/dev/null \
+    || xsetroot -solid "#1e1e2e"
 I3EOF
     ok "i3 config created (Catppuccin Mocha)"
   fi
@@ -1045,7 +1124,7 @@ POLYEOF
 install_bspwm() {
   info "Installing bspwm + polybar + rofi + dunst [Catppuccin Mocha]…"
 
-  for pkg in bspwm sxhkd polybar picom rofi dunst; do
+  for pkg in bspwm sxhkd polybar picom rofi dunst feh; do
     ensure_pkg "$pkg"
   done
   ok "bspwm stack installed"
@@ -1054,6 +1133,7 @@ install_bspwm() {
   write_dunst_catppuccin
   write_kitty_catppuccin
   write_picom_catppuccin
+  setup_wallpaper
 
   mkdir -p "$HOME/.config/bspwm"
   if [[ ! -f "$HOME/.config/bspwm/bspwmrc" ]]; then
@@ -1090,6 +1170,7 @@ sxhkd &
 dunst &
 picom --config "$HOME/.config/picom/picom.conf" --daemon &
 killall polybar 2>/dev/null; polybar main &
+feh --randomize --bg-fill "$HOME/.wallpapers/" 2>/dev/null &
 BSPWMEOF
     chmod +x "$HOME/.config/bspwm/bspwmrc"
     ok "bspwmrc created (Catppuccin Mocha)"
@@ -1295,6 +1376,30 @@ install_hyprland() {
 
   write_kitty_catppuccin
   write_rofi_catppuccin
+  setup_wallpaper
+
+  # Write swww wallpaper script (runs after swww-daemon is ready)
+  mkdir -p "$HOME/.config/hypr/scripts"
+  cat > "$HOME/.config/hypr/scripts/wallpaper.sh" <<'WPSCRIPT'
+#!/bin/bash
+# wallpaper.sh — random Catppuccin wallpaper via swww
+WALL_DIR="$HOME/.wallpapers"
+[[ -d "$WALL_DIR" ]] || exit 0
+# Wait for swww-daemon to be ready
+for _ in {1..20}; do
+  swww query &>/dev/null && break
+  sleep 0.5
+done
+# Pick a random image
+img="$(find "$WALL_DIR" \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' \) \
+       -not -name '.*' 2>/dev/null | shuf -n1)"
+[[ -n "$img" ]] && swww img "$img" \
+  --transition-type random \
+  --transition-duration 1.5 \
+  --transition-fps 60
+WPSCRIPT
+  chmod +x "$HOME/.config/hypr/scripts/wallpaper.sh"
+  ok "Hyprland wallpaper script written"
 
   ok "Hyprland stack installed"
 
@@ -1321,6 +1426,7 @@ exec-once = waybar
 exec-once = dunst
 exec-once = /usr/lib/polkit-kde-authentication-agent-1
 exec-once = swww-daemon
+exec-once = ~/.config/hypr/scripts/wallpaper.sh
 exec-once = hypridle
 exec-once = wl-paste --type text  --watch cliphist store
 exec-once = wl-paste --type image --watch cliphist store
@@ -1457,9 +1563,8 @@ bind = $mainMod, D,          exec, rofi -show drun   -theme ~/.config/rofi/catpp
 bind = $mainMod, R,          exec, rofi -show run    -theme ~/.config/rofi/catppuccin.rasi
 bind = $mainMod, Tab,        exec, rofi -show window -theme ~/.config/rofi/catppuccin.rasi
 
-# Wallpaper
-bind = $mainMod, W, exec, swww img "$(find ~/Pictures/wallpapers -type f | shuf -n1)" \
-    --transition-type random --transition-duration 1
+# Wallpaper — cycle random from ~/.wallpapers/
+bind = $mainMod, W, exec, bash ~/.config/hypr/scripts/wallpaper.sh
 
 # Screenshots
 bind = ,      Print, exec, hyprshot -m output
@@ -1734,6 +1839,7 @@ HYPRLOCKCEOF
 install_kde() {
   info "Installing KDE Plasma + Catppuccin theme + Kvantum…"
   ensure_pkg "kde"
+  setup_wallpaper
 
   # Install Kvantum (app theming engine, essential for Catppuccin KDE)
   case "$PM" in
@@ -1885,6 +1991,24 @@ FillStyle=Tile
 Opacity=0.92
 Wallpaper=
 COLORSEOF
+
+    # Wallpaper via plasma-apply-wallpaperimage (KDE 5.26+)
+    if [[ -n "$WALLPAPER_PATH" ]]; then
+      if command -v plasma-apply-wallpaperimage >/dev/null 2>&1; then
+        plasma-apply-wallpaperimage "$WALLPAPER_PATH" 2>/dev/null && \
+          ok "KDE wallpaper set: $(basename "$WALLPAPER_PATH")" || true
+      else
+        # Fallback: set via PlasmaShell DBus or kwriteconfig on the activity config
+        local activity_cfg="$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"
+        if [[ -f "$activity_cfg" ]]; then
+          sed -i "s|Image=.*|Image=file://$WALLPAPER_PATH|g" "$activity_cfg" 2>/dev/null || true
+          ok "KDE wallpaper configured in plasma-org.kde.plasma.desktop-appletsrc"
+        else
+          warn "Set wallpaper manually: Right-click desktop → Configure Desktop"
+          warn "Wallpaper file: $WALLPAPER_PATH"
+        fi
+      fi
+    fi
 
     ok "KDE Catppuccin theme applied"
     warn "Log out and back in (or run: qdbus org.kde.KWin /KWin reconfigure) to apply"
