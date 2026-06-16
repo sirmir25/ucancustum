@@ -343,37 +343,66 @@ else
 fi
 
 # ---------- choose WM/DE ----------
-clear
-cat << 'MENU'
+# Quick install: pass WM name as argument to skip the menu
+#   bash install-linux-rice-full.sh hyprland
+#   bash install-linux-rice-full.sh i3
+#   bash install-linux-rice-full.sh dwm|bspwm|kde
+
+CHOSEN_WM=""; WM_TYPE=""; BUILD_REQUIRED=false
+
+_set_wm() {
+  case "$1" in
+    dwm)      CHOSEN_WM="dwm";      WM_TYPE="x11";     BUILD_REQUIRED=true ;;
+    i3)       CHOSEN_WM="i3";       WM_TYPE="x11";     BUILD_REQUIRED=false ;;
+    bspwm)    CHOSEN_WM="bspwm";    WM_TYPE="x11";     BUILD_REQUIRED=false ;;
+    hyprland) CHOSEN_WM="hyprland"; WM_TYPE="wayland"; BUILD_REQUIRED=false ;;
+    kde)      CHOSEN_WM="kde";      WM_TYPE="";        BUILD_REQUIRED=false ;;
+    skip|"")  CHOSEN_WM="";         WM_TYPE="";        BUILD_REQUIRED=false ;;
+    *) err "Unknown WM: $1  (valid: dwm i3 bspwm hyprland kde)"; exit 1 ;;
+  esac
+}
+
+if [[ -n "${1:-}" ]]; then
+  # Non-interactive quick install
+  _set_wm "$1"
+  info "Quick install: $CHOSEN_WM"
+else
+  # Interactive menu
+  clear
+  cat << 'MENU'
 ╔════════════════════════════════════════════════╗
-║  Tokyo Night Rice Installer — Choose Setup    ║
+║        Linux Rice Installer — Choose WM       ║
+╠════════════════════════════════════════════════╣
+║  Quick install (skip menu):                   ║
+║    bash install-linux-rice-full.sh hyprland   ║
+║    bash install-linux-rice-full.sh i3         ║
 ╚════════════════════════════════════════════════╝
 
 [Tiling WMs]
-  1) dwm (minimal, C-based, ultra-light - requires build)
-  2) i3 (popular, keyboard-driven, X11)
-  3) bspwm (binary space partitioning, powerful)
-  4) hyprland (modern Wayland, eye candy ✨)
+  1) dwm        — minimal, C-based, ultra-light (requires build)
+  2) i3         — popular, keyboard-driven, X11
+  3) bspwm      — binary space partitioning, powerful
+  4) hyprland   — modern Wayland, frosted glass ✨
 
 [Desktop Environments]
-  5) KDE Plasma (full-featured, beautiful)
+  5) KDE Plasma — full-featured, Catppuccin themed
 
 [Other]
-  6) Skip WM (use existing)
+  6) Skip WM (terminal rice only)
 
 MENU
 
-read -r -p "Enter choice (1-6): " wm_choice
-
-case "$wm_choice" in
-  1) CHOSEN_WM="dwm";      WM_TYPE="x11";     BUILD_REQUIRED=true ;;
-  2) CHOSEN_WM="i3";       WM_TYPE="x11";     BUILD_REQUIRED=false ;;
-  3) CHOSEN_WM="bspwm";    WM_TYPE="x11";     BUILD_REQUIRED=false ;;
-  4) CHOSEN_WM="hyprland"; WM_TYPE="wayland"; BUILD_REQUIRED=false ;;
-  5) CHOSEN_WM="kde";      WM_TYPE="";        BUILD_REQUIRED=false ;;
-  6) CHOSEN_WM="";         WM_TYPE="";        BUILD_REQUIRED=false ;;
-  *) err "Invalid choice"; exit 1 ;;
-esac
+  read -r -p "Enter choice (1-6): " wm_choice
+  case "$wm_choice" in
+    1) _set_wm "dwm" ;;
+    2) _set_wm "i3" ;;
+    3) _set_wm "bspwm" ;;
+    4) _set_wm "hyprland" ;;
+    5) _set_wm "kde" ;;
+    6) _set_wm "skip" ;;
+    *) err "Invalid choice"; exit 1 ;;
+  esac
+fi
 
 # ---------- 1. update system ----------
 info "Updating package database…"
