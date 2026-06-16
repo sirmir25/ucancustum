@@ -432,17 +432,33 @@ install_themes
 
 # ===== DWM =====
 install_dwm() {
-  info "Installing dwm (building from source)…"
+  info "Launching DWM interactive setup wizard…"
+
+  # Try to find install-dwm.sh next to this script, then in PATH
+  local dwm_script
+  dwm_script="$(dirname "$(realpath "$0")")/install-dwm.sh"
+  if [[ ! -f "$dwm_script" ]]; then
+    dwm_script="$(command -v install-dwm.sh 2>/dev/null || echo "")"
+  fi
+
+  if [[ -n "$dwm_script" && -f "$dwm_script" ]]; then
+    bash "$dwm_script"
+    return
+  fi
+
+  # Fallback: basic build without the wizard
+  warn "install-dwm.sh not found — running basic DWM install."
+  warn "For the full interactive wizard, run: bash install-dwm.sh"
 
   for pkg in build-essential libx11 libxft libxinerama; do
     ensure_pkg "$pkg"
   done
 
-  mkdir -p "$HOME/builds"
-  cd "$HOME/builds"
+  mkdir -p "$HOME/.local/src"
+  cd "$HOME/.local/src"
 
   if [[ ! -d dwm ]]; then
-    git clone https://git.suckless.org/dwm >/dev/null 2>&1
+    git clone https://github.com/bakkeby/dwm-flexipatch.git dwm >/dev/null 2>&1
   fi
 
   cd dwm
@@ -451,15 +467,15 @@ install_dwm() {
     cat >> config.h <<'DWMEOF'
 
 /* Tokyo Night colors */
-static const char col_bg[]    = "#1a1b26";
-static const char col_fg[]    = "#c0caf5";
-static const char col_blue[]  = "#7aa2f7";
-static const char col_green[] = "#9ece6a";
-static const char col_red[]   = "#f7768e";
+static const char col_bg[]     = "#1a1b26";
+static const char col_fg[]     = "#c0caf5";
+static const char col_accent[] = "#7aa2f7";
+static const char col_green[]  = "#9ece6a";
+static const char col_red[]    = "#f7768e";
 DWMEOF
   fi
 
-  sudo make install >/dev/null 2>&1 && ok "dwm compiled and installed"
+  sudo make clean install >/dev/null 2>&1 && ok "dwm compiled and installed (basic)"
   cd - >/dev/null
 }
 
