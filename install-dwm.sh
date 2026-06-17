@@ -990,6 +990,9 @@ info "Writing ~/.xinitrc…"
   printf '# Monitor layout (edit ~/.config/dwm/monitors.sh to change)\n'
   printf '[ -x "$HOME/.config/dwm/monitors.sh" ] && "$HOME/.config/dwm/monitors.sh"\n\n'
 
+  printf '# Russian/English keyboard layout — Alt+Shift to switch\n'
+  printf 'setxkbmap -layout us,ru -option grp:alt_shift_toggle &\n\n'
+
   printf '# Wallpaper — feh picks a random image from ~/.wallpapers/\n'
   printf 'if [ -d "$HOME/.wallpapers" ] && command -v feh >/dev/null 2>&1; then\n'
   printf '    feh --randomize --bg-fill "$HOME/.wallpapers/"\n'

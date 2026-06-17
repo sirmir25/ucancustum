@@ -1025,6 +1025,7 @@ exec_always --no-startup-id killall dunst;  dunst &
 exec_always --no-startup-id killall polybar; sleep 0.5; polybar main &
 exec_always --no-startup-id picom --config ~/.config/picom/picom.conf -b
 exec_always --no-startup-id sh -c 'feh --randomize --bg-fill "$HOME/.wallpapers/" 2>/dev/null || xsetroot -solid "#1e1e2e"'
+exec_always --no-startup-id setxkbmap -layout us,ru -option grp:alt_shift_toggle
 I3EOF
     ok "i3 config created (Catppuccin Mocha)"
   fi
@@ -1072,11 +1073,20 @@ separator        = |
 separator-foreground = ${colors.surf1}
 modules-left     = i3 title
 modules-center   = date
-modules-right    = cpu memory pulseaudio
+modules-right    = cpu memory pulseaudio xkeyboard
 tray-position    = right
 tray-padding     = 6
 cursor-click     = pointer
 cursor-scroll    = ns-resize
+
+[module/xkeyboard]
+type             = internal/xkeyboard
+blacklist-0      = num lock
+blacklist-1      = scroll lock
+label-layout     = %{F#89b4fa} %layout%%{F-}
+label-layout-padding = 1
+label-indicator-on-capslock   = %{F#f38ba8}  %name%%{F-}
+label-indicator-off-capslock  =
 
 [module/i3]
 type                        = internal/i3
@@ -1199,6 +1209,7 @@ dunst &
 picom --config "$HOME/.config/picom/picom.conf" --daemon &
 killall polybar 2>/dev/null; polybar main &
 feh --randomize --bg-fill "$HOME/.wallpapers/" 2>/dev/null &
+setxkbmap -layout us,ru -option grp:alt_shift_toggle &
 BSPWMEOF
     chmod +x "$HOME/.config/bspwm/bspwmrc"
     ok "bspwmrc created (Catppuccin Mocha)"
@@ -1318,10 +1329,19 @@ separator        = |
 separator-foreground = ${colors.surf1}
 modules-left     = bspwm title
 modules-center   = date
-modules-right    = cpu memory pulseaudio
+modules-right    = cpu memory pulseaudio xkeyboard
 tray-position    = right
 tray-padding     = 6
 cursor-click     = pointer
+
+[module/xkeyboard]
+type             = internal/xkeyboard
+blacklist-0      = num lock
+blacklist-1      = scroll lock
+label-layout     = %{F#89b4fa} %layout%%{F-}
+label-layout-padding = 1
+label-indicator-on-capslock   = %{F#f38ba8}  %name%%{F-}
+label-indicator-off-capslock  =
 
 [module/bspwm]
 type                        = internal/bspwm
@@ -1534,7 +1554,8 @@ master {
 
 # Input
 input {
-    kb_layout         = us
+    kb_layout         = us,ru
+    kb_options        = grp:alt_shift_toggle
     follow_mouse      = 1
     sensitivity       = 0
     touchpad {
@@ -1680,7 +1701,7 @@ HYPREOF
 
   "modules-left":   ["hyprland/workspaces", "hyprland/window"],
   "modules-center": ["clock"],
-  "modules-right":  ["pulseaudio", "network", "cpu", "memory", "battery", "tray"],
+  "modules-right":  ["keyboard", "pulseaudio", "network", "cpu", "memory", "battery", "tray"],
 
   "hyprland/workspaces": {
     "format":        "{icon}",
@@ -1731,6 +1752,11 @@ HYPREOF
     "format-muted":    "󰖁 muted",
     "format-icons":    { "default": ["󰕿","󰖀","󰕾"] },
     "on-click":        "pavucontrol"
+  },
+  "keyboard": {
+    "format":         " {name}",
+    "format-alt":     "󰌌 {name}",
+    "on-click":       "hyprctl switchxkblayout all next"
   },
   "tray": {
     "icon-size":   18,
@@ -1809,6 +1835,7 @@ tooltip {
 #battery    { color: #f9e2af; padding: 0 8px; }
 #network    { color: #89dceb; padding: 0 8px; }
 #pulseaudio { color: #cba6f7; padding: 0 8px; }
+#keyboard   { color: #94e2d5; padding: 0 8px; font-weight: bold; }
 #tray       { padding: 0 6px; }
 
 #battery.warning  { color: #f9e2af; }
