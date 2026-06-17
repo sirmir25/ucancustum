@@ -1024,8 +1024,7 @@ for_window [class="Nitrogen"]             floating enable
 exec_always --no-startup-id killall dunst;  dunst &
 exec_always --no-startup-id killall polybar; sleep 0.5; polybar main &
 exec_always --no-startup-id picom --config ~/.config/picom/picom.conf -b
-exec_always --no-startup-id feh --randomize --bg-fill ~/.wallpapers/ 2>/dev/null \
-    || xsetroot -solid "#1e1e2e"
+exec_always --no-startup-id sh -c 'feh --randomize --bg-fill "$HOME/.wallpapers/" 2>/dev/null || xsetroot -solid "#1e1e2e"'
 I3EOF
     ok "i3 config created (Catppuccin Mocha)"
   fi
@@ -1455,7 +1454,7 @@ exec-once = waybar
 exec-once = dunst
 exec-once = /usr/lib/polkit-kde-authentication-agent-1
 exec-once = swww-daemon
-exec-once = ~/.config/hypr/scripts/wallpaper.sh
+exec-once = WALLPAPER_SCRIPT_PATH
 exec-once = hypridle
 exec-once = wl-paste --type text  --watch cliphist store
 exec-once = wl-paste --type image --watch cliphist store
@@ -1481,24 +1480,24 @@ decoration {
     fullscreen_opacity   = 1.0
 
     blur {
-        enabled          = true
-        size             = 8
-        passes           = 3
-        noise            = 0.0117
-        contrast         = 0.8916
-        brightness       = 0.8172
-        vibrancy         = 0.1696
-        vibrancy_darkness = 0.0
+        enabled           = true
+        size              = 8
+        passes            = 3
+        noise             = 0.0117
+        contrast          = 0.8916
+        brightness        = 0.8172
         new_optimizations = true
-        xray             = false
-        special          = true
+        xray              = false
+        special           = true
     }
 
-    drop_shadow          = true
-    shadow_range         = 30
-    shadow_render_power  = 3
-    shadow_color         = rgba(1a1a1aee)
-    shadow_ignore_window = true
+    shadow {
+        enabled       = true
+        range         = 30
+        render_power  = 3
+        color         = rgba(1a1a1aee)
+        ignore_window = true
+    }
 }
 
 # Animations — smooth Catppuccin-style
@@ -1657,6 +1656,12 @@ bindl = , XF86AudioMute,         exec, wpctl set-mute   @DEFAULT_AUDIO_SINK@    
 bindl = , XF86MonBrightnessUp,   exec, brightnessctl set 10%+
 bindl = , XF86MonBrightnessDown, exec, brightnessctl set 10%-
 HYPREOF
+    # Fix absolute paths (~ isn't expanded by Hyprland or bash when used as argument)
+    local wall_abs="$HOME/.config/hypr/scripts/wallpaper.sh"
+    sed -i "s|exec-once = WALLPAPER_SCRIPT_PATH|exec-once = ${wall_abs}|" \
+        "$HOME/.config/hypr/hyprland.conf"
+    sed -i "s|exec, bash ~/.config/hypr/scripts/wallpaper.sh|exec, bash ${wall_abs}|" \
+        "$HOME/.config/hypr/hyprland.conf"
     ok "hyprland.conf created (Catppuccin Mocha Frosted Glass)"
   fi
 
@@ -2030,7 +2035,7 @@ COLORSEOF
         # Fallback: set via PlasmaShell DBus or kwriteconfig on the activity config
         local activity_cfg="$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"
         if [[ -f "$activity_cfg" ]]; then
-          sed -i "s|Image=.*|Image=file://$WALLPAPER_PATH|g" "$activity_cfg" 2>/dev/null || true
+          sed -i "s|^Image=.*|Image=file://$WALLPAPER_PATH|g" "$activity_cfg" 2>/dev/null || true
           ok "KDE wallpaper configured in plasma-org.kde.plasma.desktop-appletsrc"
         else
           warn "Set wallpaper manually: Right-click desktop → Configure Desktop"
